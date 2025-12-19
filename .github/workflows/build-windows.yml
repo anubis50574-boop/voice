@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-windows:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout repo (for push)
         uses: actions/checkout@v4
@@ -22,14 +22,11 @@ jobs:
         run: npm ci
       - name: Build renderer
         run: npm run build
-      - name: Install Wine and xvfb
+      - name: Ensure ImageMagick available
         run: |
-          sudo apt update
-          sudo apt install -y wine xvfb imagemagick
+          if (Get-Command magick -ErrorAction SilentlyContinue) { Write-Host 'magick available' } else { choco install imagemagick -y }
       - name: Generate Windows icon from SVG
-        run: convert build/icon.svg -resize 256x256 build/icon.ico
-      - name: Build Windows installer (NSIS & Portable)
-        run: xvfb-run -a npx electron-builder --win nsis --x64 --publish never
+        run: magick convert build/icon.svg -resize 256x256 build/icon.ico
       - name: Build Windows installer (NSIS & Portable)
         run: npx electron-builder --win nsis --x64 --publish never
 
@@ -38,6 +35,7 @@ jobs:
           echo "ARTIFACTS<<EOF" >> $GITHUB_OUTPUT
           ls -1 dist | sed -n '1,200p' >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Upload artifacts (temporary)
         uses: actions/upload-artifact@v4
@@ -71,30 +69,31 @@ jobs:
           git push origin builds --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
 
-      # - name: Create Release
-      #   uses: actions/create-release@v1
-      #   id: create_release
-      #   with:
-      #     tag_name: build-${{ github.run_number }}
-      #     release_name: "Windows build ${{ github.run_number }}"
-      #     body: |
-      #       Windows installers and portable build for commit `${{ github.sha }}`.
-      #     draft: true
-      #     prerelease: false
+      - name: Create Release
+        uses: actions/create-release@v1
+        id: create_release
+        with:
+          tag_name: build-${{ github.run_number }}
+          release_name: "Windows build ${{ github.run_number }}"
+          body: |
+            Windows installers and portable build for commit `${{ github.sha }}`.
+          draft: true
+          prerelease: false
 
-      # - name: Upload release assets
-      #   if: steps.create_release.outputs.upload_url != ''
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     files: |
-      #       dist/*.exe
-      #       dist/*.zip
-      #       dist/*.AppImage
-      #       dist/*.nsis.*
-      #       dist/win-unpacked/**/*
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload release assets
+        if: steps.create_release.outputs.upload_url != ''
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.nsis.*
+            dist/win-unpacked/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Final message
         run: echo "Release steps completed. Check Actions artifacts or Releases tab."
