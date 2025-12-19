@@ -13,7 +13,7 @@ on:
 
 jobs:
   build-windows:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout repo (for push)
         uses: actions/checkout@v4
@@ -29,11 +29,12 @@ jobs:
       - name: Build renderer
         run: npm run build
       - name: Ensure ImageMagick available
-        run: sudo apt update && sudo apt install -y imagemagick xvfb
+        run: |
+          if (Get-Command magick -ErrorAction SilentlyContinue) { Write-Host 'magick available' } else { choco install imagemagick -y }
       - name: Generate Windows icon from SVG
-        run: convert build/icon.svg -resize 256x256 build/icon.ico || npm run build:icons
+        run: magick convert build/icon.svg -resize 256x256 build/icon.ico || npm run build:icons
       - name: Build Windows installer (NSIS & Portable)
-        run: xvfb-run -a npx electron-builder --win nsis --x64 --publish never
+        run: npx electron-builder --win nsis --x64 --publish never
 
       - name: Collect artifacts list
         run: |
@@ -76,13 +77,12 @@ jobs:
 
       - name: Create Release (if requested)
         if: >
-          (github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/') || github.event.inputs.create_release == 'true'))
-          || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
+          true
         uses: actions/create-release@v1
         id: create_release
         with:
-          tag_name: ${{ github.ref_name || 'build-' + github.run_number }}
-          release_name: "Windows build - ${{ github.ref_name || github.run_number }}"
+          tag_name: build-${{ github.run_number }}
+          release_name: "Windows build ${{ github.run_number }}"
           body: |
             Windows installers and portable build for commit `${{ github.sha }}`.
           draft: true
