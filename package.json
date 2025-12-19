@@ -10,16 +10,13 @@
     "build": "vite build",
     "build:icons": "echo 'Icono ya existe en build/icon.ico'",
     "package": "npm run build && npm run build:icons && electron-builder",
-    "dist:win": "npm run build && npm run build:icons && electron-builder --win --x64",
+    "dist:win": "npm run build && electron-builder --win --x64",
     "dist:portable": "npm run build && npm run build:icons && electron-builder --win portable",
     "preview": "vite preview"
   },
   "build": {
     "appId": "com.psykosfera.voxclon",
     "productName": "VoxClon IA",
-    "directories": {
-      "buildResources": "build"
-    },
     "files": [
       "dist/**/*",
       "electron/**/*",
@@ -30,6 +27,7 @@
         "nsis",
         "portable"
       ],
+      "sign": false,
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "nsis": {
