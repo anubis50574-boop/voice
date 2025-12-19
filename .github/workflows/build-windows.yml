@@ -32,7 +32,7 @@ jobs:
         run: |
           if (Get-Command magick -ErrorAction SilentlyContinue) { Write-Host 'magick available' } else { choco install imagemagick -y }
       - name: Generate Windows icon from SVG
-        run: magick convert build/icon.svg -resize 256x256 build/icon.ico || npm run build:icons
+        run: magick convert build/icon.svg -resize 256x256 build/icon.ico
       - name: Build Windows installer (NSIS & Portable)
         run: npx electron-builder --win nsis --x64 --publish never
 
